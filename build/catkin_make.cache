@@ -1,0 +1,2 @@
+environment_maker:mpc_nominal
+-DCATKIN_DEVEL_PREFIX=/home/youngdong/ROS/MPC/devel -DCMAKE_INSTALL_PREFIX=/home/youngdong/ROS/MPC/install -G Unix Makefiles

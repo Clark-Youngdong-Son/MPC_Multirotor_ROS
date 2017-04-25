@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC/install
+
+Name: mpc_nominal
+Description: Description of mpc_nominal
+Version: 0.0.0
+Cflags: -I/usr/include/eigen3
+Libs: -L/home/youngdong/ROS/MPC/install/lib 
+Requires: 

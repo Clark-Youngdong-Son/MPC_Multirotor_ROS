@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC/install
+
+Name: environment_maker
+Description: Description of environment_maker
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/youngdong/ROS/MPC/install/lib 
+Requires: 
