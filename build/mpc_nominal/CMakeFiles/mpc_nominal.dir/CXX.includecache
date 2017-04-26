@@ -42,12 +42,6 @@ MPCDataLogger.h
 
 /home/youngdong/ROS/MPC/src/mpc_nominal/include/Params.h
 
-/home/youngdong/ROS/MPC/src/mpc_nominal/src/MPCDataLogger.cpp
-MPCDataLogger.h
--
-sstream
--
-
 /home/youngdong/ROS/MPC/src/mpc_nominal/src/Mpc.cpp
 Mpc.h
 -
@@ -56,16 +50,6 @@ math.h
 vector
 -
 string
--
-
-/home/youngdong/ROS/MPC/src/mpc_nominal/src/main.cpp
-ros/ros.h
--
-iostream
--
-Eigen/Dense
--
-Mpc.h
 -
 
 /opt/ros/indigo/include/XmlRpcDecl.h

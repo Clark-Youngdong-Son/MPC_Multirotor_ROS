@@ -51,14 +51,15 @@ CMAKE_CXX_FLAGS:STRING=
 //Flags used by the compiler during debug builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-g
 
-//Flags used by the compiler during release builds for minimum
-// size.
+//Flags used by the compiler during release minsize builds.
 CMAKE_CXX_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
 
-//Flags used by the compiler during release builds.
+//Flags used by the compiler during release builds (/MD /Ob1 /Oi
+// /Ot /Oy /Gs will produce slightly less optimized but smaller
+// files).
 CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 
-//Flags used by the compiler during release builds with debug info.
+//Flags used by the compiler during Release with Debug Info builds.
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 
 //C compiler.
@@ -70,18 +71,19 @@ CMAKE_C_FLAGS:STRING=
 //Flags used by the compiler during debug builds.
 CMAKE_C_FLAGS_DEBUG:STRING=-g
 
-//Flags used by the compiler during release builds for minimum
-// size.
+//Flags used by the compiler during release minsize builds.
 CMAKE_C_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
 
-//Flags used by the compiler during release builds.
+//Flags used by the compiler during release builds (/MD /Ob1 /Oi
+// /Ot /Oy /Gs will produce slightly less optimized but smaller
+// files).
 CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 
-//Flags used by the compiler during release builds with debug info.
+//Flags used by the compiler during Release with Debug Info builds.
 CMAKE_C_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 
 //Flags used by the linker.
-CMAKE_EXE_LINKER_FLAGS:STRING=
+CMAKE_EXE_LINKER_FLAGS:STRING=' '
 
 //Flags used by the linker during debug builds.
 CMAKE_EXE_LINKER_FLAGS_DEBUG:STRING=
@@ -108,7 +110,7 @@ CMAKE_LINKER:FILEPATH=/usr/bin/ld
 CMAKE_MAKE_PROGRAM:FILEPATH=/usr/bin/make
 
 //Flags used by the linker during the creation of modules.
-CMAKE_MODULE_LINKER_FLAGS:STRING=
+CMAKE_MODULE_LINKER_FLAGS:STRING=' '
 
 //Flags used by the linker during debug builds.
 CMAKE_MODULE_LINKER_FLAGS_DEBUG:STRING=
@@ -138,7 +140,7 @@ CMAKE_PROJECT_NAME:STATIC=Project
 CMAKE_RANLIB:FILEPATH=/usr/bin/ranlib
 
 //Flags used by the linker during the creation of dll's.
-CMAKE_SHARED_LINKER_FLAGS:STRING=
+CMAKE_SHARED_LINKER_FLAGS:STRING=' '
 
 //Flags used by the linker during debug builds.
 CMAKE_SHARED_LINKER_FLAGS_DEBUG:STRING=
@@ -219,20 +221,8 @@ LSB_FOUND:BOOL=TRUE
 //Path to a program.
 LSB_RELEASE_EXECUTABLE:FILEPATH=/usr/bin/lsb_release
 
-//Value Computed by CMake
-MPC_nominal_BINARY_DIR:STATIC=/home/youngdong/ROS/MPC/build/MPC_nominal
-
-//Value Computed by CMake
-MPC_nominal_SOURCE_DIR:STATIC=/home/youngdong/ROS/MPC/src/MPC_nominal
-
 //Path to a program.
 NOSETESTS:FILEPATH=/usr/bin/nosetests-2.7
-
-//C++ compiler flags for OpenMP parallization
-OpenMP_CXX_FLAGS:STRING=-fopenmp
-
-//C compiler flags for OpenMP parallization
-OpenMP_C_FLAGS:STRING=-fopenmp
 
 //pkg-config executable
 PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
@@ -275,12 +265,6 @@ cmake_modules_DIR:PATH=/opt/ros/indigo/share/cmake_modules/cmake
 
 //The directory containing a CMake configuration file for cpp_common.
 cpp_common_DIR:PATH=/opt/ros/indigo/share/cpp_common/cmake
-
-//Value Computed by CMake
-eigen_tutorial_BINARY_DIR:STATIC=/home/youngdong/ROS/MPC/build/eigen_tutorial
-
-//Value Computed by CMake
-eigen_tutorial_SOURCE_DIR:STATIC=/home/youngdong/ROS/MPC/src/eigen_tutorial
 
 //Value Computed by CMake
 environment_maker_BINARY_DIR:STATIC=/home/youngdong/ROS/MPC/build/environment_maker
@@ -417,12 +401,8 @@ CMAKE_EXE_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_EXPORT_COMPILE_COMMANDS
 CMAKE_EXPORT_COMPILE_COMMANDS-ADVANCED:INTERNAL=1
-//Name of external makefile project generator.
-CMAKE_EXTRA_GENERATOR:INTERNAL=
 //Name of generator.
 CMAKE_GENERATOR:INTERNAL=Unix Makefiles
-//Name of generator platform.
-CMAKE_GENERATOR_PLATFORM:INTERNAL=
 //Name of generator toolset.
 CMAKE_GENERATOR_TOOLSET:INTERNAL=
 //Have symbol pthread_create
@@ -500,8 +480,6 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 EIGEN_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //Details about finding Eigen
 FIND_PACKAGE_MESSAGE_DETAILS_Eigen:INTERNAL=[/usr/include/eigen3][v()]
-//Details about finding OpenMP
-FIND_PACKAGE_MESSAGE_DETAILS_OpenMP:INTERNAL=[-fopenmp][-fopenmp][v()]
 //Details about finding PkgConfig
 FIND_PACKAGE_MESSAGE_DETAILS_PkgConfig:INTERNAL=[/usr/bin/pkg-config][v0.26()]
 //Details about finding PythonInterp
@@ -523,12 +501,6 @@ GTEST_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 GTEST_MAIN_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: GTEST_MAIN_LIBRARY_DEBUG
 GTEST_MAIN_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OpenMP_CXX_FLAGS
-OpenMP_CXX_FLAGS-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: OpenMP_C_FLAGS
-OpenMP_C_FLAGS-ADVANCED:INTERNAL=1
-//Test OpenMP_FLAG_DETECTED
-OpenMP_FLAG_DETECTED:INTERNAL=1
 PC_EIGEN_CFLAGS:INTERNAL=-I/usr/include/eigen3
 PC_EIGEN_CFLAGS_I:INTERNAL=
 PC_EIGEN_CFLAGS_OTHER:INTERNAL=

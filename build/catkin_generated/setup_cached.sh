@@ -7,4 +7,6 @@
 # new environment variables
 
 # modified environment variables
+export LD_LIBRARY_PATH="/opt/ros/indigo/lib"
+export PKG_CONFIG_PATH="/opt/ros/indigo/lib/pkgconfig"
 export PWD="/home/youngdong/ROS/MPC/build"

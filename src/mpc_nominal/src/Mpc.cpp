@@ -183,20 +183,9 @@ MPC::~MPC()
 
 void MPC::waitStart()
 {
-	ros::Rate rate(1);
-	while(ros::ok())
-	{
-		ros::spinOnce();
-		rate.sleep();
-		if(SIMULATION) 
-		{
-			stateSubFlag = true;
-			velocitySubFlag = true;
-		}
-		if(!stopFlag && stateSubFlag && velocitySubFlag) break;
-		std::cout << "[MPC] Waiting States from VICON" << std::endl;
-	}
-	if(!stopFlag && stateSubFlag) start();
+	std::cout << "[MPC] Waiting States from VICON" << std::endl;
+	waitSubscription();
+	if(!stopFlag && stateSubFlag && velocitySubFlag && finalSubFlag) start();
 }
 
 void MPC::start()
@@ -520,6 +509,7 @@ void MPC::obstacle_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
 {
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
+		x_obstacle.fill(0.0);
 		x_obstacle(0) = msg->pose.position.x;
 		x_obstacle(1) = msg->pose.position.y;
 		x_obstacle(2) = msg->pose.position.z;
@@ -532,6 +522,8 @@ void MPC::waypoint_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg
 	x_waypt(0) = msg->pose.position.x;
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
+		x_waypt.fill(0.0);
+		x_waypt(0) = msg->pose.position.x;
 		x_waypt(1) = msg->pose.position.y;
 		x_waypt(2) = msg->pose.position.z;
 		if(PLATFORM==SLUNGLOAD)	x_waypt(8) = -1.0;
@@ -543,6 +535,7 @@ void MPC::final_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
+		x_final.fill(0.0);
 		x_final(0) = msg->pose.position.x;
 		x_final(1) = msg->pose.position.y;
 		x_final(2) = msg->pose.position.z;
@@ -572,14 +565,7 @@ double MPC::computeCost(const StateNominal &x, const InputNominal &u, const Time
 		}
 		if(obstacleSubFlag)
 		{
-			if(PLATFORM==MULTIROTOR)
-			{
-
-			}
-			else if(PLATFORM==SLUNGLOAD)
-			{
-				temp_O += alpha*exp(-beta*(((x.col(i).block(0,0,3,1)-x_obstacle).transpose()*(x.col(i).block(0,0,3,1)-x_obstacle)).value()-d_des*d_des));
-			}
+			temp_O += alpha*exp(-beta*(((x.col(i).block(0,0,3,1)-x_obstacle).transpose()*(x.col(i).block(0,0,3,1)-x_obstacle)).value()-d_des*d_des));
 		}
 	}
 	//std::cout << "temp_L : " << temp_L << std::endl;
@@ -707,20 +693,28 @@ void MPC::computeCostGradient1x(NVector &q1, const double &t_backward, const dou
 		if(PLATFORM==MULTIROTOR)
 		{
 			q1 = Q*(x-x_inter);
-			q1 += W*(x-x_waypt)*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
-			Vector3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(-2.0*beta*(x.block(0,0,3,1)-x_obstacle));
-			NVector temp2 = NVector::Zero();
-			temp2 << temp(0), temp(1), temp(2), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-			q1 += temp2;
+			if(waypointSubFlag)	q1 += W*(x-x_waypt)*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
+
+			if(obstacleSubFlag)
+			{
+				Vector3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(-2.0*beta*(x.block(0,0,3,1)-x_obstacle));
+				NVector temp2 = NVector::Zero();
+				temp2 << temp(0), temp(1), temp(2), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+				q1 += temp2;
+			}
 		}
 		else if(PLATFORM==SLUNGLOAD)
 		{
 			q1 = Q*(x-x_inter);
-			q1 += W*(x-x_waypt)*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
-			Vector3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(-2.0*beta*(x.block(0,0,3,1)-x_obstacle));
-			NVector temp2 = NVector::Zero();
-			temp2 << temp(0), temp(1), temp(2), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-			q1 += temp2;
+			if(waypointSubFlag)	q1 += W*(x-x_waypt)*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
+
+			if(obstacleSubFlag)
+			{
+				Vector3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(-2.0*beta*(x.block(0,0,3,1)-x_obstacle));
+				NVector temp2 = NVector::Zero();
+				temp2 << temp(0), temp(1), temp(2), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+				q1 += temp2;
+			}
 		}
 	}	
 }
@@ -781,32 +775,42 @@ void MPC::computeCostGradient2(const NVector &q1, const MVector &r1, NNMatrix &Q
 	{
 		if(PLATFORM==MULTIROTOR)
 		{
-			Q2 = Q + W*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
-			Matrix3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(4.0*beta*beta*(x.block(0,0,3,1)-x_obstacle)*(x.block(0,0,3,1)-x_obstacle).transpose());
-			NNMatrix temp2 = NNMatrix::Zero();
-			for(int i=0; i<3; i++)
+			Q2 = Q;
+			if(waypointSubFlag)	Q2 += W*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
+
+			if(obstacleSubFlag)
 			{
-				for(int j=0; j<3; j++)
+				Matrix3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(4.0*beta*beta*(x.block(0,0,3,1)-x_obstacle)*(x.block(0,0,3,1)-x_obstacle).transpose());
+				NNMatrix temp2 = NNMatrix::Zero();
+				for(int i=0; i<3; i++)
 				{
-					temp2(i,j) = temp(i,j);
+					for(int j=0; j<3; j++)
+					{
+						temp2(i,j) = temp(i,j);
+					}
 				}
+				Q2 += temp2;
 			}
-			Q2 += temp2;
 			R2 = R;			
 		}
 		else if(PLATFORM==SLUNGLOAD)
 		{
-			Q2 = Q + W*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
-			Matrix3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(4.0*beta*beta*(x.block(0,0,3,1)-x_obstacle)*(x.block(0,0,3,1)-x_obstacle).transpose());
-			NNMatrix temp2 = NNMatrix::Zero();
-			for(int i=0; i<3; i++)
+			Q2 = Q;
+			if(waypointSubFlag)	Q2 += W*exp(-b_w*(t_backward-t_w)*(t_backward-t_w))/a_w;
+
+			if(obstacleSubFlag)
 			{
-				for(int j=0; j<3; j++)
+				Matrix3d temp = alpha*exp(-beta*((x.block(0,0,3,1)-x_obstacle).transpose()*(x.block(0,0,3,1)-x_obstacle)).value()-d_des*d_des)*(4.0*beta*beta*(x.block(0,0,3,1)-x_obstacle)*(x.block(0,0,3,1)-x_obstacle).transpose());
+				NNMatrix temp2 = NNMatrix::Zero();
+				for(int i=0; i<3; i++)
 				{
-					temp2(i,j) = temp(i,j);
+					for(int j=0; j<3; j++)
+					{
+						temp2(i,j) = temp(i,j);
+					}
 				}
+				Q2 += temp2;
 			}
-			Q2 += temp2;
 			R2 = R;			
 		}
 	}
