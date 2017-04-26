@@ -22,10 +22,10 @@
 
 #define DERIVATIVE ANALYTIC
 
-#define SIMULATION false
+#define SIMULATION true
 #define SIM_EPSILON 0.01
 
-#define VIRTUAL_ENVIRONMENT false
+#define VIRTUAL_ENVIRONMENT true
 #define VIRTUAL_MAX_TIME    6.0
 
 #define N		 100

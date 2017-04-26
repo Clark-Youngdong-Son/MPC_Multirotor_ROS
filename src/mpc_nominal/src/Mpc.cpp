@@ -114,8 +114,11 @@ simStopFlag(false), min_index(0)
 
 	if(SIMULATION==true)
 	{
+		stateSubFlag = true;
+		velocitySubFlag = true;
 		obstacleSubFlag = true;
 		waypointSubFlag = true;	
+		finalSubFlag = true;
 		x_initial.fill(0);
 		if(PLATFORM==MULTIROTOR)
 		{
@@ -185,11 +188,18 @@ void MPC::waitStart()
 {
 	std::cout << "[MPC] Waiting States from VICON" << std::endl;
 	waitSubscription();
-	if(!stopFlag && stateSubFlag && velocitySubFlag && finalSubFlag) start();
+	while(ros::ok())
+	{
+		ros::spinOnce();
+		if(!stopFlag && stateSubFlag && velocitySubFlag && finalSubFlag) break;
+	}
+	start();
 }
 
 void MPC::start()
 {
+	ros::Rate _rate(1.0/dt);
+	double t_1 = 0;
 	while(!stopFlag && ros::ok())
 	{
 		ros::spinOnce();
@@ -213,8 +223,8 @@ void MPC::start()
 			computeTSpan(t_span, t_now, dt, N);
 			forwardSimulation(x_nominal, u_nominal, dt);	
 			cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
+			t_1 = ros::Time::now().toNSec();
 			initialized = true;
-			std::cout << "Initilization Finished" << std::endl;
 		}
 		else
 		{
@@ -235,7 +245,6 @@ void MPC::start()
 				forwardSimulation(x_nominal, u_nominal, dt);	
 				cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
 			}
-			double t_1 = ros::Time::now().toNSec();
 			for(int i=0; i<MAX_SLQ; i++)
 			{
 				s1 = L*(x_nominal.col(N)-x_final);;
@@ -272,8 +281,10 @@ void MPC::start()
 					cost_old = cost_new;
 				}
 			}
+			_rate.sleep();
 			t_compute = (ros::Time::now().toNSec() - t_1)/1000000000;
 			std::cout << "t_compute : " << t_compute << std::endl;
+			t_1 = ros::Time::now().toNSec();
 			if(ENABLE_LOGGING) saveData();
 			if(SIMULATION) 
 			{
