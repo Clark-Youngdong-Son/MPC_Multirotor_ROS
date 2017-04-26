@@ -10,7 +10,7 @@ elseif(strcmp(type,'MULTIROTOR'))
     n=12;
     m=4;
 end
-logFile = '~/ROS/MPC/src/mpc_nominal/Data/DATA_MULTIROTOR_SIMULATION_ANALYTIC_2017_4_25_14_57_23.txt';
+logFile = '~/ROS/MPC_Multirotor_ROS/src/mpc_nominal/Data/DATA_MULTIROTOR_SIMULATION_ANALYTIC_2017_4_26_18_40_35.txt';
 logData = importdata(logFile, '\t');
 %% parse data
 t_span = logData(logData(:,1)==10, 2).';
@@ -147,6 +147,36 @@ figure(3);
 plot(t_span,cost,'-','LineWidth',2);
 %% plot state & input history with an assumption of static waypoint, obstacle, final states
 if(strcmp(type,'MULTIROTOR'))
+    X = [x_real y_real z_real roll_real pitch_real yaw_real vx_real vy_real vz_real p_real q_real r_real].';
+    U = [thrust_real Mx_real My_real Mz_real].';
+    title_state = {'x_L','y_L','z_L','\phi','\theta','\psi','\dot{x}_L','\dot{y}_L','\dot{z}_L','p','q','r'};
+    title_input = {'T', 'M_x', 'M_y', 'M_z'};
+    units_state = {'m','m','m','deg','deg','deg','m/s','m/s','m/s','deg/s','deg/s','deg/s'};
+    units_input = {'N','N \cdot m','N \cdot m','N \cdot m'};
+    figure(4);
+    for i=1:n
+        subplot(6,2,i);
+        plot(t_span, X(i,:),'k','LineWidth',4); hold on;
+        plot(t_w, x_w(1,i),'o','MarkerEdgeColor','b','MarkerFaceColor','b','MarkerSize',10);
+        plot(t_span(end), x_f(1,i),'o','MarkerEdgeColor','r','MarkerFaceColor','r','MarkerSize',10);
+        if(i==1)
+            legend({'history','final','waypoint'},'Location','Best','FontSize',9);
+        end
+        xlabel('time(s)','FontSize',14); title(['$$' title_state{i} '$$'],'Interpreter','latex');
+        ylabel(['$$' units_state{i} '$$'],'Interpreter','latex');
+        set(gca,'FontSize',14);
+    end
+    figure(5);
+    for i=1:m
+        subplot(4,1,i);
+        plot(t_span, U(i,:),'k','LineWidth',4); hold on;
+        if(i==1)
+            legend({'history'},'Location','Best','FontSize',9);
+        end
+        xlabel('time(s)','FontSize',14); title(['$$' title_input{i} '$$'],'Interpreter','latex');
+        ylabel(['$$' units_input{i} '$$'], 'Interpreter','latex');
+        set(gca,'FontSize',14);
+    end
 elseif(strcmp(type,'SLUNGLOAD'))
     X = [x_real y_real z_real roll_real pitch_real yaw_real px_real py_real pz_real vx_real vy_real vz_real p_real q_real r_real px_dot_real py_dot_real pz_dot_real].';
     U = [thrust_real Mx_real My_real Mz_real].';

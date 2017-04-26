@@ -46,7 +46,7 @@ namespace SYD{
 		StateNominal x_nominal;
 		InputNominal u_nominal;
 		Vector3d x_obstacle;
-		bool initialized, stopFlag, stateSubFlag, velocitySubFlag, obstacleSubFlag, waypointSubFlag, finalSubFlag, simStopFlag;
+		bool initialized, stopFlag, stateSubFlag, velocitySubFlag, obstacleSubFlag, waypointSubFlag, finalSubFlag, simStopFlag, expStopFlag;
 
 		void forwardSimulation(StateNominal &x_n, const InputNominal &u_n, const double &dt);
 		NVector dynamics_multirotor(const NVector &x_now, const MVector &u_now, const double &dt);	

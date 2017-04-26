@@ -13,7 +13,7 @@ cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(0.0), t_compute(0.
 initialized(false), stopFlag(true),
 stateSubFlag(false), velocitySubFlag(false), obstacleSubFlag(false),
 waypointSubFlag(false), finalSubFlag(false),
-simStopFlag(false), min_index(0)
+simStopFlag(false), expStopFlag(false), min_index(0)
 {
 	I(0,0) = I_x;
 	I(1,1) = I_y;
@@ -201,6 +201,7 @@ void MPC::waitStart()
 
 void MPC::start()
 {
+	ros::Rate _rate(1.0/dt);
 	while(!stopFlag && ros::ok())
 	{
 		ros::spinOnce();
@@ -283,6 +284,7 @@ void MPC::start()
 					cost_old = cost_new;
 				}
 			}
+			_rate.sleep();
 			t_compute = (ros::Time::now().toNSec() - t_1)/1000000000;
 			std::cout << "t_compute : " << t_compute << std::endl;
 			if(ENABLE_LOGGING) saveData();
@@ -321,6 +323,13 @@ void MPC::start()
 			}
 			else
 			{
+				double error = sqrt((x_nominal(0,0)-x_final(0))*(x_nominal(0,0)-x_final(0))+(x_nominal(1,0)-x_final(1))*(x_nominal(1,0)-x_final(1))+(x_nominal(2,0)-x_final(2))*(x_nominal(2,0)-x_final(2)));
+				//std::cout << "Distance to final : " << error << std::endl;
+				if(error<=SIM_EPSILON)
+				{
+					expStopFlag = true;
+					break;
+				}	
 				stateSubFlag = false;
 				velocitySubFlag = false;
 				obstacleSubFlag = false;
@@ -342,7 +351,11 @@ void MPC::start()
 				std::cout << "Simulation Terminated" << std::endl;
 				break;
 			}
-			//ros::Duration(0.5).sleep();
+			if(expStopFlag && !SIMULATION)
+			{
+				std::cout << "Experiment Terminated" << std::endl;
+				break;
+			}
 		}
 	}
 }
@@ -574,7 +587,7 @@ double MPC::computeCost(const StateNominal &x, const InputNominal &u, const Time
 		{
 			if(PLATFORM==MULTIROTOR)
 			{
-
+				temp_O += alpha*exp(-beta*(((x.col(i).block(0,0,3,1)-x_obstacle).transpose()*(x.col(i).block(0,0,3,1)-x_obstacle)).value()-d_des*d_des));
 			}
 			else if(PLATFORM==SLUNGLOAD)
 			{

@@ -29,8 +29,8 @@
 #define VIRTUAL_MAX_TIME    6.0
 
 #define N		 200
-#define MAX_LINE 10
-#define MAX_SLQ  20
+#define MAX_LINE 8
+#define MAX_SLQ  10
 #define STOP_SLQ -1.0
 //Cost weights
 //Final
@@ -44,9 +44,9 @@
 	#define L_7		10.0
 	#define L_8		10.0
 	#define L_9		10.0
-	#define L_10	10.0
-	#define L_11	10.0
-	#define L_12	10.0
+	#define L_10	1.0
+	#define L_11	1.0
+	#define L_12	1.0
 
 
 	#define L_13	0.0
@@ -79,18 +79,18 @@
 #endif
 //Intermediate
 #if PLATFORM == MULTIROTOR
-	#define Q_1		0.0	
-	#define Q_2		0.0
-	#define Q_3		0.0
-	#define Q_4		10.0
-	#define Q_5		10.0
-	#define Q_6		10.0
+	#define Q_1		1.0	
+	#define Q_2		1.0
+	#define Q_3		1.0
+	#define Q_4		1.0
+	#define Q_5		1.0
+	#define Q_6		1.0
 	#define Q_7		0.0
 	#define Q_8		0.0
 	#define Q_9		0.0
-	#define Q_10	0.0
-	#define Q_11	0.0
-	#define Q_12	0.0
+	#define Q_10	1.0
+	#define Q_11	1.0
+	#define Q_12	1.0
 
 
 	#define Q_13	0.0
