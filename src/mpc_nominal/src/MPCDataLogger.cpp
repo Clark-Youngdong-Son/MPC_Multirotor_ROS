@@ -10,7 +10,7 @@ using namespace SYD;
 
 MPCDataLogger::MPCDataLogger()
 {
-	fileName = "/home/youngdong/ROS/MPC_Multirotor_ROS/src/mpc_nominal/Data/";
+	fileName = "/home/youngdong/ROS/MPC_Multirotor_ROS/Data/";
 	time_t rawtime;
 	struct tm *now;
 	time(&rawtime);
