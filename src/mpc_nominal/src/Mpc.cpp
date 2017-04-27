@@ -60,6 +60,7 @@ simStopFlag(false), min_index(0)
 	x_inter(8) = -1.0;
 	u_inter   = MVector::Zero();
 	x_final   = NVector::Zero(n);
+	x_final(2) = 1.5;
 	x_waypt   = NVector::Zero(n);
 	t_span    = TimeNominal::Zero();
 	x_obstacle= Vector3d::Zero();
@@ -104,11 +105,11 @@ simStopFlag(false), min_index(0)
 		U_series[i].setZero();
 	}
 	current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &MPC::current_pose_callback, this);
-	current_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/twist", 10, &MPC::current_vel_callback, this);
+	current_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity", 10, &MPC::current_vel_callback, this);
 	start_command_sub = nh.subscribe<keyboard::Key>("keyboard/keydown", 10, &MPC::start_command_callback, this);
-	obstacle_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("obstacle1/pose", 10, &MPC::obstacle_pose_callback, this);
-	waypoint_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("waypoint/pose", 10, &MPC::waypoint_pose_callback, this);
-	final_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("final/pose", 10, &MPC::final_pose_callback, this);
+	obstacle_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("obstacle1/pose", 10, &MPC::obstacle_pose_callback, this);
+	waypoint_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("waypoint/pose", 10, &MPC::waypoint_pose_callback, this);
+	final_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("final/pose", 10, &MPC::final_pose_callback, this);
 
 	setpoint_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local",1);
 
@@ -191,7 +192,7 @@ void MPC::waitStart()
 	while(ros::ok())
 	{
 		ros::spinOnce();
-		if(!stopFlag && stateSubFlag && velocitySubFlag && finalSubFlag) break;
+		if(!stopFlag && stateSubFlag && velocitySubFlag) break;
 	}
 	start();
 }
@@ -258,27 +259,30 @@ void MPC::start()
 					cost_new = cost_old;
 					break;
 				}
-				if(cost_delta>STOP_SLQ)
+				else
 				{
-					//std::cout << "Converged" << std::endl;
-					if(cost_delta>0) 
+					if(cost_delta>STOP_SLQ)
 					{
-						cost_new = cost_old;
-						break;
+						//std::cout << "Converged" << std::endl;
+						if(cost_delta>0) 
+						{
+							cost_new = cost_old;
+							break;
+						}
+						else
+						{ 
+							x_nominal = X_series[min_index];
+							u_nominal = U_series[min_index];
+							cost_old = cost_new;
+							break;
+						}
 					}
 					else
-					{ 
+					{
 						x_nominal = X_series[min_index];
 						u_nominal = U_series[min_index];
 						cost_old = cost_new;
-						break;
 					}
-				}
-				else
-				{
-					x_nominal = X_series[min_index];
-					u_nominal = U_series[min_index];
-					cost_old = cost_new;
 				}
 			}
 			_rate.sleep();
@@ -342,7 +346,6 @@ void MPC::start()
 				std::cout << "Simulation Terminated" << std::endl;
 				break;
 			}
-			//ros::Duration(0.5).sleep();
 		}
 	}
 }
@@ -505,51 +508,51 @@ void MPC::current_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg)
 	{
 		if(PLATFORM==MULTIROTOR)
 		{
-			x_nominal(0,0) = msg->twist.linear.x;
-			x_nominal(1,0) = msg->twist.linear.y;
-			x_nominal(2,0) = msg->twist.linear.z;
-			x_nominal(3,0) = msg->twist.angular.x;
-			x_nominal(4,0) = msg->twist.angular.y;
-			x_nominal(5,0) = msg->twist.angular.z;
+			x_nominal(6,0) = msg->twist.linear.x;
+			x_nominal(7,0) = msg->twist.linear.y;
+			x_nominal(8,0) = msg->twist.linear.z;
+			x_nominal(9,0) = msg->twist.angular.x;
+			x_nominal(10,0) = msg->twist.angular.y;
+			x_nominal(11,0) = msg->twist.angular.z;
 		}
 		velocitySubFlag = true;
 	}
 }
 
-void MPC::obstacle_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void MPC::obstacle_pose_callback(const geometry_msgs::TransformStamped::ConstPtr& msg)
 {
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
 		x_obstacle.fill(0.0);
-		x_obstacle(0) = msg->pose.position.x;
-		x_obstacle(1) = msg->pose.position.y;
-		x_obstacle(2) = msg->pose.position.z;
+		x_obstacle(0) = msg->transform.translation.x;
+		x_obstacle(1) = msg->transform.translation.y;
+		x_obstacle(2) = msg->transform.translation.z;
 		obstacleSubFlag = true;
 	}
 }
 
-void MPC::waypoint_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void MPC::waypoint_pose_callback(const geometry_msgs::TransformStamped::ConstPtr& msg)
 {
-	x_waypt(0) = msg->pose.position.x;
+	x_waypt(0) = msg->transform.translation.x;
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
 		x_waypt.fill(0.0);
-		x_waypt(0) = msg->pose.position.x;
-		x_waypt(1) = msg->pose.position.y;
-		x_waypt(2) = msg->pose.position.z;
+		x_waypt(0) = msg->transform.translation.x;
+		x_waypt(1) = msg->transform.translation.y;
+		x_waypt(2) = msg->transform.translation.z+1.5;
 		if(PLATFORM==SLUNGLOAD)	x_waypt(8) = -1.0;
 		waypointSubFlag = true;
 	}
 }
 
-void MPC::final_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+void MPC::final_pose_callback(const geometry_msgs::TransformStamped::ConstPtr& msg)
 {
 	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
 	{
 		x_final.fill(0.0);
-		x_final(0) = msg->pose.position.x;
-		x_final(1) = msg->pose.position.y;
-		x_final(2) = msg->pose.position.z;
+		x_final(0) = msg->transform.translation.x;
+		x_final(1) = msg->transform.translation.y;
+		x_final(2) = msg->transform.translation.z;
 		if(PLATFORM==SLUNGLOAD)	x_final(8) = -1.0;
 		finalSubFlag = true;
 	}

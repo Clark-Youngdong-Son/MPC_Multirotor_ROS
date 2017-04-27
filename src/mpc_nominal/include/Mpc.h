@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <keyboard/Key.h>
 
@@ -29,9 +30,9 @@ namespace SYD{
 		void start_command_callback(const keyboard::Key::ConstPtr&); 
 		void current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr&);
 		void current_vel_callback(const geometry_msgs::TwistStamped::ConstPtr&);
-		void obstacle_pose_callback(const geometry_msgs::PoseStamped::ConstPtr&);
-		void waypoint_pose_callback(const geometry_msgs::PoseStamped::ConstPtr&);
-		void final_pose_callback(const geometry_msgs::PoseStamped::ConstPtr&);
+		void obstacle_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
+		void waypoint_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
+		void final_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
 
 		NNMatrix L, Q, W;
 		MMMatrix R;
