@@ -60,7 +60,7 @@ simStopFlag(false), min_index(0)
 	x_inter(8) = -1.0;
 	u_inter   = MVector::Zero();
 	x_final   = NVector::Zero(n);
-	x_final(2) = 1.5;
+	x_final(2) = 1.5;////
 	x_waypt   = NVector::Zero(n);
 	t_span    = TimeNominal::Zero();
 	x_obstacle= Vector3d::Zero();
@@ -164,14 +164,14 @@ simStopFlag(false), min_index(0)
 	
 			t_w = 2.0;
 		}
-		////std::cout << "x_initial" << std::endl;
-		////std::cout << x_initial << std::endl;
-		////std::cout << "x_inter" << std::endl;
-		////std::cout << x_inter << std::endl;
-		////std::cout << "x_waypt" << std::endl;
-		////std::cout << x_waypt << std::endl;
-		////std::cout << "x_obstacle" << std::endl;
-		////std::cout << x_obstacle << std::endl;
+		//std::cout << "x_initial" << std::endl;
+		//std::cout << x_initial << std::endl;
+		//std::cout << "x_inter" << std::endl;
+		//std::cout << x_inter << std::endl;
+		//std::cout << "x_waypt" << std::endl;
+		//std::cout << x_waypt << std::endl;
+		//std::cout << "x_obstacle" << std::endl;
+		//std::cout << x_obstacle << std::endl;
 	}
 	if(ENABLE_LOGGING)
 	{
@@ -200,7 +200,8 @@ void MPC::waitStart()
 void MPC::start()
 {
 	ros::Rate _rate(1.0/dt);
-	double t_1 = 0;
+	double i_init = 0.0;
+	double t_init_SLQ = 0.0;
 	while(!stopFlag && ros::ok())
 	{
 		ros::spinOnce();
@@ -224,7 +225,8 @@ void MPC::start()
 			computeTSpan(t_span, t_now, dt, N);
 			forwardSimulation(x_nominal, u_nominal, dt);	
 			cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
-			t_1 = ros::Time::now().toNSec();
+			t_init = ros::Time::now().toNSec();
+			t_init_SLQ = t_init;
 			initialized = true;
 		}
 		else
@@ -286,9 +288,10 @@ void MPC::start()
 				}
 			}
 			_rate.sleep();
-			t_compute = (ros::Time::now().toNSec() - t_1)/1000000000;
+			double t_temp = ros::Time::now().toNSec();
+			t_compute = (t_temp - t_init_SLQ)/1000000000;
 			std::cout << "t_compute : " << t_compute << std::endl;
-			t_1 = ros::Time::now().toNSec();
+			t_now = (t_temp - t_init)/1000000000;
 			if(ENABLE_LOGGING) saveData();
 			if(SIMULATION) 
 			{
