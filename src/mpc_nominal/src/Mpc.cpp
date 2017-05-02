@@ -9,7 +9,7 @@ MPC::MPC() :
 mass(4.0), mass_l(1.0), length(0.5), I_x(1.0), I_y(1.0), I_z(1.0),
 a_w(0.005), b_w(1000.0), alpha(8000.0), beta(2.0), d_des(0.0),
 dt(0.04), g(9.81),
-cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(0.0), t_compute(0.0),
+cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(-10.0), t_compute(0.0),
 initialized(false), stopFlag(true),
 stateSubFlag(false), velocitySubFlag(false), obstacleSubFlag(false),
 waypointSubFlag(false), finalSubFlag(false),
@@ -57,7 +57,10 @@ simStopFlag(false), min_index(0), iter_SLQ(0), regularizationFlag(false)
 	x_nominal = StateNominal::Zero();
 	u_nominal = InputNominal::Zero();	
 	x_inter   = NVector::Zero();
-	x_inter(8) = -1.0;
+	if(PLATFORM==SLUNGLOAD)
+	{
+		x_inter(8) = -1.0;
+	}
 	u_inter   = MVector::Zero();
 	x_final   = NVector::Zero(n);
 	x_final(2) = 1.5;////
@@ -228,11 +231,12 @@ void MPC::start()
 			forwardSimulation(x_nominal, u_nominal, dt);	
 			cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
 			t_init = ros::Time::now().toNSec();
-			t_init_SLQ = t_init;
 			initialized = true;
 		}
 		else
 		{
+
+			t_init_SLQ = ros::Time::now().toNSec();
 			if(SIMULATION && VIRTUAL_ENVIRONMENT)
 			{
 				for(int i=0; i<N; i++)
@@ -250,16 +254,17 @@ void MPC::start()
 				forwardSimulation(x_nominal, u_nominal, dt);	
 				cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
 			}
-			for(int iter_SLQ=0; iter_SLQ<MAX_SLQ; iter_SLQ++)
+			double cost_old_old = cost_old;
+			for(iter_SLQ=0; iter_SLQ<MAX_SLQ; iter_SLQ++)
 			{
 				s1 = L*(x_nominal.col(N)-x_final);;
 				S2 = L;
 				if(!ros::ok()) break;
 				solveSLQ();
 				double cost_delta = cost_new - cost_old;
-				std::cout << "ITER : " << iter_SLQ+1 << " cost old : " << cost_old << " cost new : " << cost_new << " cost delta : " << cost_delta << std::endl;
 				if(isNaN(cost_new))
 				{
+					std::cout << "NaN occured" << std::endl;
 					cost_new = cost_old;
 					regularizationFlag = true;
 					////break;
@@ -290,6 +295,7 @@ void MPC::start()
 					}
 				}
 			}
+			std::cout << "ITER : " << iter_SLQ << " cost new : " << cost_new << " cost delta : " << cost_new-cost_old_old << std::endl;
 			regularizationFlag = false;
 			_rate.sleep();
 			double t_temp = ros::Time::now().toNSec();
@@ -628,12 +634,16 @@ void MPC::solveSLQ()
 		G_    = (B.transpose())*S2*A;
 		H_    = R2+(B.transpose())*S2*B;
 
+		MVector eigenvalues = MVector::Zero();
+		eigenvalues = H_.eigenvalues().real();
+		double minEigenvalue = eigenvalues.minCoeff();
+		minEigValue_old(i) = minEigenvalue;
 		if(REGULARIZATION && regularizationFlag)
 		{
-			MVector eigenvalues = MVector::Zero();
-			eigenvalues = H_.eigenvalues().real();
-			double minEigenvalue = eigenvalues.minCoeff();
-			minEigValue_old(i) = minEigenvalue;
+////			MVector eigenvalues = MVector::Zero();
+////			eigenvalues = H_.eigenvalues().real();
+////			double minEigenvalue = eigenvalues.minCoeff();
+////			minEigValue_old(i) = minEigenvalue;
 			//adaptive shift
 			if(iter_SLQ<ITER_CONSTANT)
 			{
