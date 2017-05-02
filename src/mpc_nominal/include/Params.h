@@ -32,6 +32,13 @@
 #define MAX_LINE 10
 #define MAX_SLQ  20
 #define STOP_SLQ -1.0
+
+//Adaptive shift
+#define REGULARIZATION true
+#define ITER_CONSTANT 2
+#define EPSILON 3.0
+#define DELTA 0.005
+
 //Cost weights
 //Final
 #if PLATFORM == MULTIROTOR
@@ -178,10 +185,11 @@
 	#define W_17	0.01
 	#define W_18	0.01
 #endif
+
 using namespace Eigen;
 typedef Matrix<double, n, N+1> StateNominal;
 typedef Matrix<double, m, N>   InputNominal;
-typedef Matrix<double, 1, N+1> TimeNominal;
+typedef Matrix<double, N+1, 1> TimeNominal;
 typedef Matrix<double, n, n>   NNMatrix;
 typedef Matrix<double, m, m>   MMMatrix;
 typedef Matrix<double, n, m>   NMMatrix;
@@ -191,5 +199,6 @@ typedef Matrix<double, m, 1>   MVector;
 typedef Matrix<double, n, N+1> StateSeries;
 typedef Matrix<double, m, N>   InputSeries;
 typedef Matrix<double, MAX_LINE, 1> LineVector;
+typedef Matrix<double, N, 1> EigenValues;
 
 #endif

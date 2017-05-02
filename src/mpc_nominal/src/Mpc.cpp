@@ -13,7 +13,7 @@ cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(0.0), t_compute(0.
 initialized(false), stopFlag(true),
 stateSubFlag(false), velocitySubFlag(false), obstacleSubFlag(false),
 waypointSubFlag(false), finalSubFlag(false),
-simStopFlag(false), min_index(0)
+simStopFlag(false), min_index(0), iter_SLQ(0), regularizationFlag(false)
 {
 	I(0,0) = I_x;
 	I(1,1) = I_y;
@@ -80,6 +80,8 @@ simStopFlag(false), min_index(0)
 	H_     = MMMatrix::Zero();
 	H_inv  = MMMatrix::Zero();
 	g_     = MVector::Zero();
+	minEigValue_old = EigenValues::Zero();
+	minEigValue_new = EigenValues::Zero();
 
 	K.reserve(N);
 	l.reserve(N);
@@ -248,18 +250,19 @@ void MPC::start()
 				forwardSimulation(x_nominal, u_nominal, dt);	
 				cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
 			}
-			for(int i=0; i<MAX_SLQ; i++)
+			for(int iter_SLQ=0; iter_SLQ<MAX_SLQ; iter_SLQ++)
 			{
 				s1 = L*(x_nominal.col(N)-x_final);;
 				S2 = L;
 				if(!ros::ok()) break;
 				solveSLQ();
 				double cost_delta = cost_new - cost_old;
-				std::cout << "ITER : " << i+1 << " cost old : " << cost_old << " cost new : " << cost_new << " cost delta : " << cost_delta << std::endl;
+				std::cout << "ITER : " << iter_SLQ+1 << " cost old : " << cost_old << " cost new : " << cost_new << " cost delta : " << cost_delta << std::endl;
 				if(isNaN(cost_new))
 				{
 					cost_new = cost_old;
-					break;
+					regularizationFlag = true;
+					////break;
 				}
 				else
 				{
@@ -287,6 +290,7 @@ void MPC::start()
 					}
 				}
 			}
+			regularizationFlag = false;
 			_rate.sleep();
 			double t_temp = ros::Time::now().toNSec();
 			t_compute = (t_temp - t_init_SLQ)/1000000000;
@@ -623,6 +627,42 @@ void MPC::solveSLQ()
 		//std::cout << R << std::endl;
 		G_    = (B.transpose())*S2*A;
 		H_    = R2+(B.transpose())*S2*B;
+
+		if(REGULARIZATION && regularizationFlag)
+		{
+			MVector eigenvalues = MVector::Zero();
+			eigenvalues = H_.eigenvalues().real();
+			double minEigenvalue = eigenvalues.minCoeff();
+			minEigValue_old(i) = minEigenvalue;
+			//adaptive shift
+			if(iter_SLQ<ITER_CONSTANT)
+			{
+				//constant shift
+				MMMatrix delta = MMMatrix::Zero();
+				for(int i=0; i<m; i++)
+				{
+					delta(i,i) = EPSILON;
+				}
+				H_ += delta;
+			}
+			else
+			{
+				//active shift
+				MMMatrix delta = MMMatrix::Zero();
+				if(minEigenvalue < DELTA)
+				{
+					for(int i=0; i<m; i++)
+					{
+						delta(i,i) = DELTA - minEigenvalue;
+					}
+				H_ += delta;
+				}
+			}
+			eigenvalues = H_.eigenvalues().real();
+			minEigenvalue = eigenvalues.minCoeff();
+			minEigValue_new(i) = minEigenvalue;
+		}
+
 		H_inv = H_.inverse();
 		g_    = r1+(B.transpose())*s1;
 		//std::cout << "G_" << std::endl;
@@ -912,7 +952,7 @@ void MPC::waitSubscription()
 
 void MPC::saveData()
 {
-	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w); 
+	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w, minEigValue_old, minEigValue_new); 
 }
 
 bool MPC::isNaN(double number)

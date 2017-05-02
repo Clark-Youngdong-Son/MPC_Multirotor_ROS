@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <iostream>
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -43,11 +44,12 @@ namespace SYD{
 		double cost_new, cost_old;
 		double t_init, t_now;
 		double t_virtual;
+		int iter_SLQ;
 
 		StateNominal x_nominal;
 		InputNominal u_nominal;
 		Vector3d x_obstacle;
-		bool initialized, stopFlag, stateSubFlag, velocitySubFlag, obstacleSubFlag, waypointSubFlag, finalSubFlag, simStopFlag;
+		bool initialized, stopFlag, stateSubFlag, velocitySubFlag, obstacleSubFlag, waypointSubFlag, finalSubFlag, simStopFlag, regularizationFlag;
 
 		void forwardSimulation(StateNominal &x_n, const InputNominal &u_n, const double &dt);
 		NVector dynamics_multirotor(const NVector &x_now, const MVector &u_now, const double &dt);	
@@ -80,6 +82,7 @@ namespace SYD{
 		MVector r1, g_;
 		MMMatrix R2, H_, H_inv;
 		MNMatrix G_;
+		EigenValues minEigValue_old, minEigValue_new;
 
 		std::vector<MNMatrix>      K;
 		std::vector<MVector>       l;
