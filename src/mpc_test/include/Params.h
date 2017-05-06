@@ -39,6 +39,22 @@
 #define EPSILON 10.0
 #define DELTA 0.0001
 
+//Nominal Input
+#define USE_PID_CONTROLLER false
+
+//#define P_xy 2.0
+//#define P_z 2.0
+//#define P_rp 2.0
+//#define P_y 2.0
+//#define I_xy 2.0
+//#define I_z 2.0
+//#define I_rp 2.0
+//#define I_y 2.0
+//#define D_xy 2.0
+//#define D_z 2.0
+//#define D_rp 2.0
+//#define D_y 2.0
+
 //Cost weights
 //Final
 #if PLATFORM == MULTIROTOR
@@ -94,16 +110,16 @@
 	//#define Q_3		1000.0
 	#define Q_1		20000.0	
 	#define Q_2		20000.0
-	#define Q_3		60000.0
+	#define Q_3		40000.0
 	#define Q_4		8000.0
 	#define Q_5		8000.0
 	#define Q_6		8000.0
-	#define Q_7		30000.0
-	#define Q_8		30000.0
-	#define Q_9		30000.0
-	#define Q_10	30000.0
-	#define Q_11	30000.0
-	#define Q_12	30000.0
+	#define Q_7		20000.0
+	#define Q_8		20000.0
+	#define Q_9		20000.0
+	#define Q_10	20000.0
+	#define Q_11	20000.0
+	#define Q_12	20000.0
 
 
 	#define Q_13	0.0

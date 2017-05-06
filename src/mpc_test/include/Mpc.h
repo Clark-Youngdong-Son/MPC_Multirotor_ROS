@@ -9,6 +9,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <std_msgs/Float64.h>
 #include <keyboard/Key.h>
 
 #include <Params.h>
@@ -25,7 +26,7 @@ namespace SYD{
 	private:
 		ros::NodeHandle nh;
 
-		ros::Subscriber current_pose_sub, current_vel_sub, start_command_sub, obstacle_pose_sub, waypoint_pose_sub, final_pose_sub;
+		ros::Subscriber current_pose_sub, current_vel_sub, start_command_sub, obstacle_pose_sub, waypoint_pose_sub, final_pose_sub, tension_sub, load_pose_sub;
 		ros::Publisher setpoint_pub;
 	
 		void start_command_callback(const keyboard::Key::ConstPtr&); 
@@ -34,6 +35,8 @@ namespace SYD{
 		void obstacle_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
 		void waypoint_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
 		void final_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
+		void tension_callback(const std_msgs::Float64::ConstPtr&);
+		void load_pose_callback(const geometry_msgs::TransformStamped::ConstPtr&);
 
 		NNMatrix L, Q, W;
 		MMMatrix R;
@@ -102,6 +105,11 @@ namespace SYD{
 		double minEigenvalue_old_prev, minEigenvalue_new_prev;
 
 		bool tempFlag;
+
+		double tension;
+		Vector3d load_position;
+
+		void PIDController();
 	};
 }
 

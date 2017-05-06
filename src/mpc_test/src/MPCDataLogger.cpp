@@ -39,7 +39,7 @@ MPCDataLogger::~MPCDataLogger()
 	file_.close();
 }
 
-void MPCDataLogger::addLine(const double &t_now, const StateNominal &x_n, const InputNominal &u_n, const NVector &x_waypt, const NVector &x_final, const Vector3d &x_obstacle, const double &t_compute, const double &cost_new, const double &t_w, const EigenValues eig_old, const EigenValues eig_new)
+void MPCDataLogger::addLine(const double &t_now, const StateNominal &x_n, const InputNominal &u_n, const NVector &x_waypt, const NVector &x_final, const Vector3d &x_obstacle, const double &t_compute, const double &cost_new, const double &t_w, const EigenValues eig_old, const EigenValues eig_new, double tension, Vector3d load_position)
 {
 	for(int i=0; i<n; i++)
 	{
@@ -96,6 +96,15 @@ void MPCDataLogger::addLine(const double &t_now, const StateNominal &x_n, const 
 	for(int i=0; i<N; i++)
 	{
 		file_ << eig_new(i) << "\t";
+	}	
+	file_ << "\n";
+
+	file_ << "9\t" << t_now << "\t\t" << tension << "\n";
+
+	file_ << "11\t" << t_now << "\t\t";
+	for(int i=0; i<3; i++)
+	{
+		file_ << load_position(i) << "\t";
 	}	
 	file_ << "\n";
 } 

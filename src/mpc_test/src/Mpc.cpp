@@ -15,7 +15,7 @@ stateSubFlag(false), velocitySubFlag(false), obstacleSubFlag(false),
 waypointSubFlag(false), finalSubFlag(false),
 simStopFlag(false), min_index(0), iter_SLQ(0), regularizationFlag(false), NaN_prev(false),
 delta_regular(DELTA), epsilon_regular(EPSILON), minEigenvalue_old_prev(100), minEigenvalue_new_prev(100),
-tempFlag(false)
+tempFlag(false), tension(0.0)
 {
 	I(0,0) = I_x;
 	I(1,1) = I_y;
@@ -58,14 +58,17 @@ tempFlag(false)
 	
 	x_nominal = StateNominal::Zero();
 	u_nominal = InputNominal::Zero();	
+	u_inter   = MVector::Zero();
+	x_final   = NVector::Zero(n);
+	x_final(2) = 1.5;////
 	x_inter   = NVector::Zero();
+	x_inter(0) = x_final(0);
+	x_inter(1) = x_final(1);
+	x_inter(2) = x_final(2);
 	if(PLATFORM==SLUNGLOAD)
 	{
 		x_inter(8) = -1.0;
 	}
-	u_inter   = MVector::Zero();
-	x_final   = NVector::Zero(n);
-	x_final(2) = 1.5;////
 	x_waypt   = NVector::Zero(n);
 	t_span    = TimeNominal::Zero();
 	x_obstacle= Vector3d::Zero();
@@ -116,12 +119,17 @@ tempFlag(false)
 		X_series[i].setZero();
 		U_series[i].setZero();
 	}
-	current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &MPC::current_pose_callback, this);
+
+	load_position = Vector3d(0.0,0.0,0.0);
+
+	current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 3, &MPC::current_pose_callback, this);
 	current_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity", 10, &MPC::current_vel_callback, this);
 	start_command_sub = nh.subscribe<keyboard::Key>("keyboard/keydown", 10, &MPC::start_command_callback, this);
 	obstacle_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("obstacle1/pose", 10, &MPC::obstacle_pose_callback, this);
 	waypoint_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("waypoint/pose", 10, &MPC::waypoint_pose_callback, this);
 	final_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("final/pose", 10, &MPC::final_pose_callback, this);
+	tension_sub = nh.subscribe<std_msgs::Float64>("SYD/tension", 10, &MPC::tension_callback, this);
+	load_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("vicon/SYD_LOAD/SYD_LOAD", 10, &MPC::load_pose_callback, this);
 
 	setpoint_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local",1);
 
@@ -236,15 +244,22 @@ void MPC::start()
 			if(PLATFORM==MULTIROTOR)		u_inter(0) = mass*g;
 			else if(PLATFORM==SLUNGLOAD)	u_inter(0) = (mass+mass_l)*g;
 			//Initial nominal input trajectory
-			for(int i=0; i<N; i++)
+			if(USE_PID_CONTROLLER)
 			{
-				if(PLATFORM==MULTIROTOR)
+				PIDController();
+			}
+			else
+			{
+			for(int i=0; i<N; i++)
 				{
-					u_nominal(0,i)  = mass*g;		
-				}
-				else if(PLATFORM==SLUNGLOAD) 
-				{
-					u_nominal(0,i) = (mass+mass_l)*g;
+					if(PLATFORM==MULTIROTOR)
+					{
+						u_nominal(0,i)  = mass*g;		
+					}
+					else if(PLATFORM==SLUNGLOAD) 
+					{
+						u_nominal(0,i) = (mass+mass_l)*g;
+					}
 				}
 			}
 			computeTSpan(t_span, t_now, dt, N);
@@ -285,6 +300,8 @@ void MPC::start()
 				//std::cout << "S2 : " << std::endl;
 				//std::cout << S2 << std::endl;
 				//if(!ros::ok()) break;
+				obstacleSubFlag = false;
+				waypointSubFlag = false;
 				solveSLQ();
 				//if(cost_new>500000 && iter_SLQ>=10) ros::Duration(2.0).sleep();
 				double cost_delta = cost_new - cost_old;
@@ -405,15 +422,22 @@ void MPC::start()
 				//	u_nominal.col(i) = u_temp.col(i+1);
 				//}
 				//u_nominal.col(N-1) = u_nominal.col(N-2);
-				for(int i=0; i<N; i++)
+				if(USE_PID_CONTROLLER)
 				{
-					if(PLATFORM==MULTIROTOR)
+					PIDController();
+				}
+				else
+				{
+					for(int i=0; i<N; i++)
 					{
-						u_nominal(0,i)  = mass*g*1.2;		
-					}
-					else if(PLATFORM==SLUNGLOAD) 
-					{
-						u_nominal(0,i) = (mass+mass_l)*g;
+						if(PLATFORM==MULTIROTOR)
+						{
+							u_nominal(0,i)  = mass*g*0.9;		
+						}
+						else if(PLATFORM==SLUNGLOAD) 
+						{
+							u_nominal(0,i) = (mass+mass_l)*g;
+						}
 					}
 				}
 				computeTSpan(t_span, t_now, dt, N);
@@ -576,7 +600,7 @@ void MPC::current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 			R(2,1) = 2*(q2*q3+q0*q1);
 			R(2,2) = q0*q0 - q1*q1 - q2*q2 + q3*q3;
 			x_nominal(3,0) = atan2(R(2,1),R(2,2));
-			x_nominal(4,0) = atan2(-R(2,0),sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
+			x_nominal(4,0) = -atan2(-R(2,0),sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
 			x_nominal(5,0) = atan2(R(1,0),R(0,0));
 		}
 		stateSubFlag = true;
@@ -593,7 +617,7 @@ void MPC::current_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg)
 			x_nominal(7,0) = msg->twist.linear.y;
 			x_nominal(8,0) = msg->twist.linear.z;
 			x_nominal(9,0) = msg->twist.angular.x;
-			x_nominal(10,0) = msg->twist.angular.y;
+			x_nominal(10,0) = -msg->twist.angular.y;
 			x_nominal(11,0) = msg->twist.angular.z;
 		}
 		velocitySubFlag = true;
@@ -639,6 +663,24 @@ void MPC::final_pose_callback(const geometry_msgs::TransformStamped::ConstPtr& m
 		x_inter(2) = x_final(2);
 		if(PLATFORM==SLUNGLOAD)	x_final(8) = -1.0;
 		finalSubFlag = true;
+	}
+}
+
+void MPC::tension_callback(const std_msgs::Float64::ConstPtr& msg)
+{
+	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
+	{
+		tension = msg->data;
+	}
+}
+
+void MPC::load_pose_callback(const geometry_msgs::TransformStamped::ConstPtr& msg)
+{
+	if(VIRTUAL_ENVIRONMENT || !SIMULATION)
+	{
+		load_position(0) = msg->transform.translation.x;
+		load_position(1) = msg->transform.translation.y;
+		load_position(2) = msg->transform.translation.z;
 	}
 }
 
@@ -1031,6 +1073,8 @@ void MPC::lineSearch(const double cost_old, const StateNominal &x_n, const Input
 
 void MPC::waitSubscription()
 {
+	stateSubFlag = false;
+	velocitySubFlag = false;
 	while(ros::ok())
 	{
 		ros::spinOnce();
@@ -1047,10 +1091,20 @@ void MPC::waitSubscription()
 
 void MPC::saveData()
 {
-	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w, minEigValue_old, minEigValue_new); 
+	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w, minEigValue_old, minEigValue_new, tension, load_position); 
 }
 
 bool MPC::isNaN(double number)
 {
 	return (number != number);
+}
+
+void MPC::PIDController()
+{
+	for(int i=0; i<N; i++)
+	{
+		//Position controller
+
+		//Attitude controller
+	}
 }
