@@ -30,11 +30,11 @@
 
 #define N		 50
 #define MAX_LINE 10
-#define MAX_SLQ  50
+#define MAX_SLQ  20
 #define STOP_SLQ -30.0
 
 //Adaptive shift
-#define REGULARIZATION true
+#define REGULARIZATION false
 #define ITER_CONSTANT 2
 #define EPSILON 10.0
 #define DELTA 0.0001
@@ -42,18 +42,20 @@
 //Nominal Input
 #define USE_PID_CONTROLLER false
 
-//#define P_xy 2.0
-//#define P_z 2.0
-//#define P_rp 2.0
-//#define P_y 2.0
-//#define I_xy 2.0
-//#define I_z 2.0
-//#define I_rp 2.0
-//#define I_y 2.0
-//#define D_xy 2.0
-//#define D_z 2.0
-//#define D_rp 2.0
-//#define D_y 2.0
+#define P_xy 0.5
+#define P_z 60.0
+#define P_rp 8.8
+#define P_y 0.6
+
+//#define I_xy 0.0
+//#define I_z 0.0
+//#define I_rp 0.0
+//#define I_y 0.0
+
+#define D_xy 0.5
+#define D_z 40.0
+#define D_rp 1.5
+#define D_y 0.2
 
 //Cost weights
 //Final
@@ -222,5 +224,6 @@ typedef Matrix<double, n, N+1> StateSeries;
 typedef Matrix<double, m, N>   InputSeries;
 typedef Matrix<double, MAX_LINE, 1> LineVector;
 typedef Matrix<double, N, 1> EigenValues;
-
+typedef Matrix<double, 9, 1> CoefficientVector;
+typedef Matrix<double, 9, N+1> SubTrajectory;
 #endif

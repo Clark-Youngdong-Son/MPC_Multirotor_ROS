@@ -9,13 +9,14 @@ MPC::MPC() :
 mass(4.0), mass_l(1.0), length(0.5), I_x(0.03), I_y(0.03), I_z(0.01),
 a_w(0.005), b_w(1000.0), alpha(2000.0), beta(1.0), d_des(0.0),
 dt(0.04), g(9.81),
-cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(-10.0), t_compute(0.0),
+cost_new(0.0), cost_old(0.0), t_now(0.0), t_virtual(0.0), t_w(-10.0), t_compute(0.0), t_compute_real(0.0), t_init_SLQ(0.0),
 initialized(false), stopFlag(true),
 stateSubFlag(false), velocitySubFlag(false), obstacleSubFlag(false),
 waypointSubFlag(false), finalSubFlag(false),
 simStopFlag(false), min_index(0), iter_SLQ(0), regularizationFlag(false), NaN_prev(false),
 delta_regular(DELTA), epsilon_regular(EPSILON), minEigenvalue_old_prev(100), minEigenvalue_new_prev(100),
-tempFlag(false), tension(0.0)
+tempFlag(false), tension(0.0), t_pose_old(0.0), t_pose_new(0.0), t_vel_old(0.0), t_vel_new(0.0),
+t_compute_log(0.0), t_compute_sub(0.0)
 {
 	I(0,0) = I_x;
 	I(1,1) = I_y;
@@ -122,7 +123,33 @@ tempFlag(false), tension(0.0)
 
 	load_position = Vector3d(0.0,0.0,0.0);
 
-	current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 3, &MPC::current_pose_callback, this);
+	if(USE_PID_CONTROLLER)
+	{
+		Vector3d P_position_array, D_position_array;
+		//Vector3d P_position_array, I_position_array, D_position_array;
+		Vector3d P_attitude_array, D_attitude_array;
+		//Vector3d P_attitude_array, I_attitude_array, D_attitude_array;
+		P_position_array << P_xy, P_xy, P_z;
+		//I_position_array << I_xy, I_xy, I_z;
+		D_position_array << D_xy, D_xy, D_z;
+		P_attitude_array << P_rp, P_rp, P_y;
+		//I_attitude_array << I_rp, I_rp, I_y;
+		D_attitude_array << D_rp, D_rp, D_y;
+		for(int i=0; i<3; i++)
+		{
+			P_position(i,i) = P_position_array(i);
+			//I_position(i,i) = I_position_array(i);
+			D_position(i,i) = D_position_array(i);
+			P_attitude(i,i) = P_attitude_array(i);
+			//I_attitude(i,i) = I_attitude_array(i);
+			D_attitude(i,i) = D_attitude_array(i);
+		}
+	}	
+	x_sub_nominal = SubTrajectory::Zero();
+	t_sub = TimeNominal::Zero();
+	computeTSpan(t_sub, 0.0, dt, N); 
+
+	current_pose_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &MPC::current_pose_callback, this);
 	current_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity", 10, &MPC::current_vel_callback, this);
 	start_command_sub = nh.subscribe<keyboard::Key>("keyboard/keydown", 10, &MPC::start_command_callback, this);
 	obstacle_pose_sub = nh.subscribe<geometry_msgs::TransformStamped>("obstacle1/pose", 10, &MPC::obstacle_pose_callback, this);
@@ -233,7 +260,6 @@ void MPC::start()
 {
 	ros::Rate _rate(1.0/dt);
 	double i_init = 0.0;
-	double t_init_SLQ = 0.0;
 	int iter_whole = 1;
 	while(!stopFlag && ros::ok())
 	{
@@ -266,12 +292,11 @@ void MPC::start()
 			forwardSimulation(x_nominal, u_nominal, dt);	
 			cost_old = computeCost(x_nominal, u_nominal, t_span); //TODO t_span & t_now
 			t_init = ros::Time::now().toNSec();
+			t_init_SLQ = ros::Time::now().toNSec();
 			initialized = true;
 		}
 		else
 		{
-
-			t_init_SLQ = ros::Time::now().toNSec();
 			if(SIMULATION && VIRTUAL_ENVIRONMENT)
 			{
 				for(int i=0; i<N; i++)
@@ -303,7 +328,12 @@ void MPC::start()
 				obstacleSubFlag = false;
 				waypointSubFlag = false;
 				solveSLQ();
-				//if(cost_new>500000 && iter_SLQ>=10) ros::Duration(2.0).sleep();
+				//if(cost_new>500000 && iter_SLQ>=10)
+				//{
+				//	ros::Duration(2.0).sleep();
+				//	std::cout << "x" << std::endl << x_nominal.block(0,0,n,1) << std::endl;
+				//	std::cout << "u" << std::endl << u_nominal.block(0,0,m,1) << std::endl;
+				//}
 				double cost_delta = cost_new - cost_old;
 				if(REGULARIZATION)
 				{
@@ -334,7 +364,7 @@ void MPC::start()
 					NaN_prev = false;
 					if(cost_delta>STOP_SLQ)
 					{
-						if(cost_delta<=0.1)	break;
+						if(cost_delta<=30.0)	break;
 						if(cost_delta>=0 && REGULARIZATION)
 						{
 							regularizationFlag = true;
@@ -369,12 +399,11 @@ void MPC::start()
 			NaN_prev = false;
 			delta_regular = DELTA;
 			epsilon_regular = EPSILON;
-			_rate.sleep();
-			double t_temp = ros::Time::now().toNSec();
-			t_compute = (t_temp - t_init_SLQ)/1000000000;
-			std::cout << "t_compute : " << t_compute << std::endl;
-			t_now = (t_temp - t_init)/1000000000;
+			t_compute_real = (ros::Time::now().toNSec()-t_init_SLQ)/1000000000.0;
+			std::cout << "t_compute_real : " << t_compute_real << std::endl;
 			if(ENABLE_LOGGING) saveData();
+			//t_compute_log = (ros::Time::now().toNSec()-t_init_SLQ)/1000000000.0 - t_compute_real;
+			//std::cout << "t_compute_log : " << t_compute_log << std::endl;
 			if(SIMULATION) 
 			{
 				t_now += dt;
@@ -415,6 +444,8 @@ void MPC::start()
 				obstacleSubFlag = false;
 				waypointSubFlag = false;
 				waitSubscription();
+		//	    t_compute_sub = (ros::Time::now().toNSec()-t_init_SLQ)/1000000000.0 - t_compute_real;
+		//	std::cout << "t_compute_sub : " << t_compute_sub << std::endl;
 				t_now = (ros::Time::now().toNSec()-t_init)/1000000000.0;
 				//InputNominal u_temp = u_nominal;
 				//for(int i=0; i<N-1; i++)
@@ -451,6 +482,19 @@ void MPC::start()
 			}
 		//std::cout << "iter_whole : " << iter_whole << std::endl;
 		//if(++iter_whole == 2) break;
+			_rate.sleep();
+			double t_temp = ros::Time::now().toNSec();
+			t_compute = (t_temp - t_init_SLQ)/1000000000;
+		//		std::cout << "Time interval for pose subscription : " << (t_pose_new-t_pose_old) << std::endl;
+		//		std::cout << "Time interval for vel subscription : " << (t_vel_new-t_vel_old) << std::endl;
+		//	std::cout << "t_compute : " << t_compute << std::endl;
+		//	if(t_compute >=0.08)
+		//	{
+		//		ros::Duration(2.0).sleep();
+		//		break;
+		//	}
+			t_now = (t_temp - t_init)/1000000000;
+			t_init_SLQ = ros::Time::now().toNSec();
 		}
 	}
 }
@@ -580,6 +624,9 @@ void MPC::current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
 	if(!SIMULATION)
 	{
+		//t_pose_old = t_pose_new;
+		//ros::Time T_pose_new = msg->header.stamp;
+		//t_pose_new = T_pose_new.toNSec()/1000000000.0;
 		if(PLATFORM==MULTIROTOR)
 		{
 			x_nominal(0,0) = msg->pose.position.x;
@@ -601,7 +648,8 @@ void MPC::current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 			R(2,2) = q0*q0 - q1*q1 - q2*q2 + q3*q3;
 			x_nominal(3,0) = atan2(R(2,1),R(2,2));
 			x_nominal(4,0) = -atan2(-R(2,0),sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
-			x_nominal(5,0) = atan2(R(1,0),R(0,0));
+			x_nominal(5,0) = atan2(R(1,0),R(0,0));////
+			//x_nominal(5,0) = 0.0;////
 		}
 		stateSubFlag = true;
 	}
@@ -609,6 +657,9 @@ void MPC::current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 
 void MPC::current_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg)
 {
+	//t_vel_old = t_vel_new;
+	//ros::Time T_vel_new = msg->header.stamp;
+	//t_vel_new = T_vel_new.toNSec()/1000000000.0;
 	if(!SIMULATION)
 	{
 		if(PLATFORM==MULTIROTOR)
@@ -1080,7 +1131,7 @@ void MPC::waitSubscription()
 		ros::spinOnce();
 		if(!SIMULATION)
 		{
-			if(stateSubFlag && velocitySubFlag) break;
+			if(stateSubFlag && velocitySubFlag)	break;
 		}
 		else
 		{
@@ -1091,7 +1142,7 @@ void MPC::waitSubscription()
 
 void MPC::saveData()
 {
-	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w, minEigValue_old, minEigValue_new, tension, load_position); 
+	logger->addLine(t_now, x_nominal, u_nominal, x_waypt, x_final, x_obstacle, t_compute, cost_new, t_w, minEigValue_old, minEigValue_new, tension, load_position, t_compute_real); 
 }
 
 bool MPC::isNaN(double number)
@@ -1101,10 +1152,115 @@ bool MPC::isNaN(double number)
 
 void MPC::PIDController()
 {
+	makeSubTrajectory();
+
+	double yaw_0 = x_nominal(5,0);
 	for(int i=0; i<N; i++)
 	{
-		//Position controller
+		if(PLATFORM==MULTIROTOR)
+		{
+			//Position controller
+			Vector3d xyz_error = x_sub_nominal.block(0,i,3,1) - x_nominal.block(0,i,3,1);
+			Vector3d xyz_dot_error = x_sub_nominal.block(3,i,3,1) - x_nominal.block(6,i,3,1);;
+			
+			Vector3d acceleration_des = P_position*xyz_error + D_position*xyz_dot_error;
+			double thrust = acceleration_des(2,0);
+			double yaw = x_nominal(5,i);
+			Matrix2d roll_pitch_des_temp = Matrix2d::Zero();
+			roll_pitch_des_temp << cos(-yaw), sin(-yaw), sin(-yaw), cos(-yaw);
+			Vector2d temp = Vector2d::Zero();
+			temp << -acceleration_des(1,0), acceleration_des(0,0);
+			Vector2d roll_pitch_des = roll_pitch_des_temp * temp;
 
-		//Attitude controller
+			//Attitude controller
+			Vector3d attitude_des = Vector3d::Zero();
+			attitude_des << roll_pitch_des(0), roll_pitch_des(1), yaw_0;
+			Vector3d attitude_error = attitude_des - x_nominal.block(3,i,3,1);
+			Vector3d attitude_dot_des = Vector3d::Zero();
+			Vector3d attitude_dot_error = attitude_dot_des - x_nominal.block(9,i,3,1);
+
+			Vector3d moments = P_attitude*attitude_error + D_attitude*attitude_dot_error;
+			MVector input = MVector::Zero();
+			input << thrust, moments(0), moments(1), moments(2);
+			u_nominal.block(0,i,m,1) = input;
+			x_nominal.block(0,i+1,n,1) = dynamics_multirotor(x_nominal.block(0,i,n,1), u_nominal.block(0,i,m,1), dt);
+		}
+		else if(PLATFORM==SLUNGLOAD)
+		{
+
+		}
+	}
+}
+
+void MPC::makeSubTrajectory()
+{
+	CoefficientVector coeffs = CoefficientVector::Zero();
+	Matrix2d A = Matrix2d::Zero();
+	Matrix2d A_inv = Matrix2d::Zero();
+	
+	double t_f = dt*N;
+	if(PLATFORM==MULTIROTOR)
+	{
+		double x = x_nominal(0,0);
+		double y = x_nominal(1,0);
+		double z = x_nominal(2,0);
+		double x_dot = x_nominal(6,0);
+		double y_dot = x_nominal(7,0);
+		double z_dot = x_nominal(8,0);
+		double x_f = x_final(0,0);
+		double y_f = x_final(1,0);
+		double z_f = x_final(2,0);
+		double x_dot_f = x_final(6,0);
+		double y_dot_f = x_final(7,0);
+		double z_dot_f = x_final(8,0);
+
+		coeffs(2,0) = x_dot;
+		coeffs(5,0) = y_dot;
+		coeffs(8,0) = z_dot;
+
+		A << t_f*t_f, t_f, t_f*t_f*t_f/3, t_f*t_f/2;
+		A_inv = A.inverse();
+
+		Vector2d temp = Vector2d::Zero();
+		temp << x_dot_f-x_dot, x_f-x-x_dot*t_f;
+		coeffs.block(0,0,2,1) = A_inv * temp;
+		temp << y_dot_f-y_dot, y_f-y-y_dot*t_f;
+		coeffs.block(3,0,2,1) = A_inv * temp;
+		temp << z_dot_f-z_dot, z_f-z-z_dot*t_f;
+		coeffs.block(6,0,2,1) = A_inv * temp;
+
+		for(int i=0; i<N+1; i++)
+		{
+			x_sub_nominal(0,i) = coeffs(0,0)*t_sub(i)*t_sub(i)*t_sub(i)/3 +
+								 coeffs(1,0)*t_sub(i)*t_sub(i)/2          +
+                                 coeffs(2,0)*t_sub(i)                     +
+								 x;
+			x_sub_nominal(1,i) = coeffs(3,0)*t_sub(i)*t_sub(i)*t_sub(i)/3 +
+								 coeffs(4,0)*t_sub(i)*t_sub(i)/2          +
+                                 coeffs(5,0)*t_sub(i)                     +
+								 y;
+			x_sub_nominal(2,i) = coeffs(6,0)*t_sub(i)*t_sub(i)*t_sub(i)/3 +
+								 coeffs(7,0)*t_sub(i)*t_sub(i)/2          +
+                                 coeffs(8,0)*t_sub(i)                     +
+								 z;
+			x_sub_nominal(3,i) = coeffs(0,0)*t_sub(i)*t_sub(i) +
+		                         coeffs(1,0)*t_sub(i)          +
+	                             coeffs(2,0);
+			x_sub_nominal(4,i) = coeffs(3,0)*t_sub(i)*t_sub(i) +
+		                         coeffs(4,0)*t_sub(i)          +
+	                             coeffs(5,0);
+			x_sub_nominal(5,i) = coeffs(6,0)*t_sub(i)*t_sub(i) +
+		                         coeffs(7,0)*t_sub(i)          +
+	                             coeffs(8,0);
+			x_sub_nominal(6,i) = coeffs(0,0)*t_sub(i)*2 +
+		                         coeffs(1,0);
+			x_sub_nominal(7,i) = coeffs(3,0)*t_sub(i)*2 +
+		                         coeffs(4,0);
+			x_sub_nominal(8,i) = coeffs(6,0)*t_sub(i)*2 +
+		                         coeffs(7,0);
+		}
+	}
+	else if(PLATFORM==SLUNGLOAD)
+	{
 	}
 }

@@ -92,7 +92,7 @@ namespace SYD{
 		std::vector<StateNominal>  X_series;
 		std::vector<InputNominal>  U_series;
 
-		double t_compute;
+		double t_compute, t_compute_real, t_init_SLQ;
 
 		MPCDataLogger *logger;
 		void saveData();
@@ -110,6 +110,13 @@ namespace SYD{
 		Vector3d load_position;
 
 		void PIDController();
+		Matrix3d P_position, D_position, I_position, P_attitude, I_attitude, D_attitude;
+		void makeSubTrajectory();
+		SubTrajectory x_sub_nominal;	
+		TimeNominal t_sub;
+
+		double t_pose_old, t_pose_new, t_vel_old, t_vel_new;
+		double t_compute_log, t_compute_sub;
 	};
 }
 
