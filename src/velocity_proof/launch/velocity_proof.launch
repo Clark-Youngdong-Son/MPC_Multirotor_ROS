@@ -1,0 +1,34 @@
+<?xml version='1.0' ?>
+<launch>
+	<arg name="pose_topic1" default="/mavros/mocap/pose"/>
+	<arg name="output_topic1" default="/mpc/multirotor_velocity"/>
+	<arg name="outputRaw_topic1" default="/mpc/multirotor_velocityRaw"/>
+	<arg name="node_name1" default="vicon_twist1"/>
+	<include file="$(find vicon_twist)/launch/vicon_twist.launch">
+		<arg name="node_name" value="$(arg node_name1)"/>
+		<arg name="pose_topic" value="$(arg pose_topic1)"/>
+		<arg name="output_topic" value="$(arg output_topic1)"/>
+		<arg name="outputRaw_topic" value="$(arg outputRaw_topic1)"/>
+	</include>
+
+	<arg name="pose_topic2" default="/syd/load_position"/>
+	<arg name="output_topic2" default="/mpc/load_velocity"/>
+	<arg name="outputRaw_topic2" default="/mpc/load_velocityRaw"/>
+	<arg name="node_name2" default="vicon_twist2"/>
+	<include file="$(find vicon_twist)/launch/vicon_twist.launch">
+		<arg name="node_name" value="$(arg node_name2)"/>
+		<arg name="pose_topic" value="$(arg pose_topic2)"/>
+		<arg name="output_topic" value="$(arg output_topic2)"/>
+		<arg name="outputRaw_topic" value="$(arg outputRaw_topic2)"/>
+	</include>
+
+	<node name="vicon_bridge" pkg="vicon_bridge" type="vicon_bridge" output="screen">
+        <param name="stream_mode" value="ClientPull" type="str" />
+        <param name="datastream_hostport" value="192.168.1.108:801" type="str" />
+        <param name="tf_ref_frame_id" value="/world" type="str" />
+        <remap from="vicon/Youngdong_LOAD/Youngdong_LOAD" to="syd/load_tf" />
+        <remap from="vicon/Youngdong_NUC_450/Youngdong_NUC_450" to="syd/multirotor_tf" />
+	</node>
+	<node name="tfToPose" pkg="mpc_icra" type="syd_tfToPose" output="screen"/>
+	<node name="velocity_proof" pkg="velocity_proof" type="velocity_proof" output="screen"/>
+</launch>

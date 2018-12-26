@@ -1,0 +1,9 @@
+time_derivative : 0
+time_backward : 0
+time_cost : 0
+time_etc : 0
+f_derivative : -nan
+f_backward : -nan
+f_cost : -nan
+f_etc : -nan
+avg_compute : -nan

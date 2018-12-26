@@ -1,0 +1,22 @@
+setting:
+    algorithm:
+        transmitRate            : 2.0
+
+    obstacleInfo:
+        obstacleMaxNumber       : 20                 #Maximum number of obstacles in buffer
+        #obstaclePositions       : [3.0, 0.0, 1.5, 6.0, 0.0, 1.5, 0.0, 3.0, 1.5, 0.0, 6.0, 1.5] #Virtual
+        #obstaclePositions       : [1.0, 0.0, 1.5] #Virtual
+        obstaclePositions       : [0.9108, -2.0454, 1.3288, 1.5041, 0.1448, 1.1033] #Virtual
+        obstacleScale           : [0.5, 0.5, 1.0]
+        obstacleEnableRange     : 4.3               #Maximum consideration distance
+        obstacleRefreshRange    : 1.9                #Maximum distance to upate previous information
+        obstacleRemoveTime      : 2.0
+
+    function:
+        enable_virtual_obstacle : false
+        enable_ground_truth     : true
+        enable_detection_noise  : false
+    noiseParameter:
+        process_noise           : [0.6, 0.6, 0.6]
+        measurement_noise       : [1.0, 0.3, 0.3]
+        #measurement_noise       : [1.0, 1.0, 1.5]

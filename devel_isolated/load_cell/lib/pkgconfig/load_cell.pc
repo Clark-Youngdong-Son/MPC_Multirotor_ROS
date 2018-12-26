@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/load_cell
+
+Name: load_cell
+Description: Description of load_cell
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/load_cell/lib 
+Requires: serial std_msgs

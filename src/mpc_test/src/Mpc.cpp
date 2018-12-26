@@ -135,6 +135,10 @@ t_compute_log(0.0), t_compute_sub(0.0)
 		P_attitude_array << P_rp, P_rp, P_y;
 		//I_attitude_array << I_rp, I_rp, I_y;
 		D_attitude_array << D_rp, D_rp, D_y;
+		P_position = Matrix3d::Zero();
+		D_position = Matrix3d::Zero();
+		P_attitude = Matrix3d::Zero();
+		D_attitude = Matrix3d::Zero();
 		for(int i=0; i<3; i++)
 		{
 			P_position(i,i) = P_position_array(i);
@@ -144,6 +148,14 @@ t_compute_log(0.0), t_compute_sub(0.0)
 			//I_attitude(i,i) = I_attitude_array(i);
 			D_attitude(i,i) = D_attitude_array(i);
 		}
+		//std::cout << "P_position : " << std::endl;
+		//std::cout << P_position << std::endl;
+		//std::cout << "D_position : " << std::endl;
+		//std::cout << D_position << std::endl;
+		//std::cout << "P_attitue : " << std::endl;
+		//std::cout << P_attitude << std::endl;
+		//std::cout << "D_attitude : " << std::endl;
+		//std::cout << D_attitude << std::endl;
 	}	
 	x_sub_nominal = SubTrajectory::Zero();
 	t_sub = TimeNominal::Zero();
@@ -193,7 +205,7 @@ t_compute_log(0.0), t_compute_sub(0.0)
 			x_final.fill(0.0);
 			x_final(2) = 1.5;
 	
-			x_inter.fill(0);
+			x_inter.fill(0.0);
 			x_inter(0) = x_final(0);
 			x_inter(1) = x_final(1);
 			x_inter(2) = x_final(2);
@@ -351,6 +363,12 @@ void MPC::start()
 				//	std::cout << minEigValue_new << std::endl;
 				//}
 
+				//if(iter_SLQ>15)
+				//{
+				//	std::cout << "x" << std::endl << x_nominal.block(0,0,n,1) << std::endl;
+				//	ros::Duration(2.0).sleep();
+				//	break;
+				//}
 				if(isNaN(cost_new))
 				{
 					regularizationFlag = true;
@@ -647,7 +665,7 @@ void MPC::current_pose_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 			R(2,1) = 2*(q2*q3+q0*q1);
 			R(2,2) = q0*q0 - q1*q1 - q2*q2 + q3*q3;
 			x_nominal(3,0) = atan2(R(2,1),R(2,2));
-			x_nominal(4,0) = -atan2(-R(2,0),sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
+			x_nominal(4,0) = atan2(-R(2,0),sqrt(R(2,1)*R(2,1)+R(2,2)*R(2,2)));
 			x_nominal(5,0) = atan2(R(1,0),R(0,0));////
 			//x_nominal(5,0) = 0.0;////
 		}
@@ -668,7 +686,7 @@ void MPC::current_vel_callback(const geometry_msgs::TwistStamped::ConstPtr& msg)
 			x_nominal(7,0) = msg->twist.linear.y;
 			x_nominal(8,0) = msg->twist.linear.z;
 			x_nominal(9,0) = msg->twist.angular.x;
-			x_nominal(10,0) = -msg->twist.angular.y;
+			x_nominal(10,0) = msg->twist.angular.y;
 			x_nominal(11,0) = msg->twist.angular.z;
 		}
 		velocitySubFlag = true;
@@ -1153,7 +1171,19 @@ bool MPC::isNaN(double number)
 void MPC::PIDController()
 {
 	makeSubTrajectory();
-
+	//std::cout << "SubTrajectory : " << std::endl;
+	//std::cout << "x=====" << std::endl;
+	//std::cout << x_sub_nominal.row(0) << std::endl;
+	//std::cout << "y=====" << std::endl;
+	//std::cout << x_sub_nominal.row(1) << std::endl;
+	//std::cout << "z=====" << std::endl;
+	//std::cout << x_sub_nominal.row(2) << std::endl;
+	//std::cout << "x=====" << std::endl;
+	//std::cout << x_sub_nominal.row(0) << std::endl;
+	//std::cout << "y=====" << std::endl;
+	//std::cout << x_sub_nominal.row(1) << std::endl;
+	//std::cout << "z=====" << std::endl;
+	//std::cout << x_sub_nominal.row(2) << std::endl;
 	double yaw_0 = x_nominal(5,0);
 	for(int i=0; i<N; i++)
 	{
@@ -1164,18 +1194,26 @@ void MPC::PIDController()
 			Vector3d xyz_dot_error = x_sub_nominal.block(3,i,3,1) - x_nominal.block(6,i,3,1);;
 			
 			Vector3d acceleration_des = P_position*xyz_error + D_position*xyz_dot_error;
-			double thrust = acceleration_des(2,0);
+			double thrust = acceleration_des(2,0) + mass*9.8;
 			double yaw = x_nominal(5,i);
 			Matrix2d roll_pitch_des_temp = Matrix2d::Zero();
 			roll_pitch_des_temp << cos(-yaw), sin(-yaw), sin(-yaw), cos(-yaw);
 			Vector2d temp = Vector2d::Zero();
 			temp << -acceleration_des(1,0), acceleration_des(0,0);
 			Vector2d roll_pitch_des = roll_pitch_des_temp * temp;
+			double max_angle = 35.0 * 3.14/180.0;
+			for(int j=0; j<2; j++)
+			{
+				if(roll_pitch_des(j) < -max_angle) roll_pitch_des(j) = - max_angle;
+				else if(roll_pitch_des(j) > max_angle) roll_pitch_des(j) = max_angle;
+			}
 
 			//Attitude controller
 			Vector3d attitude_des = Vector3d::Zero();
 			attitude_des << roll_pitch_des(0), roll_pitch_des(1), yaw_0;
 			Vector3d attitude_error = attitude_des - x_nominal.block(3,i,3,1);
+			//std::cout << "r p y : " << x_nominal(3,i) << " " << x_nominal(4,i) << " " << x_nominal(5,i) << std::endl;
+			//std::cout << "r p y des: " << attitude_des(0) << " " << attitude_des(1) << " " << attitude_des(2) << std::endl;
 			Vector3d attitude_dot_des = Vector3d::Zero();
 			Vector3d attitude_dot_error = attitude_dot_des - x_nominal.block(9,i,3,1);
 
@@ -1184,6 +1222,22 @@ void MPC::PIDController()
 			input << thrust, moments(0), moments(1), moments(2);
 			u_nominal.block(0,i,m,1) = input;
 			x_nominal.block(0,i+1,n,1) = dynamics_multirotor(x_nominal.block(0,i,n,1), u_nominal.block(0,i,m,1), dt);
+			//std::cout << "x_old : " << std::endl;
+			//std::cout << x_nominal.block(0,i,n,1) << std::endl;
+			//std::cout << "x_des : " << std::endl;
+			//std::cout << x_sub_nominal.block(0,i,6,1) << std::endl;
+			//std::cout << "acc_des : " << std::endl;
+			//std::cout << acceleration_des << std::endl;
+			//std::cout << "roll_pitch_des_temp : " << std::endl;
+			//std::cout << roll_pitch_des_temp << std::endl;
+			//std::cout << "u_old : " << std::endl;
+			//std::cout << u_nominal.block(0,i,m,1) << std::endl;
+			//std::cout << "x_new : " << std::endl;
+			//std::cout << x_nominal.block(0,i+1,n,1) << std::endl;
+			//std::cout << "xyz_error = " << xyz_error(0) << xyz_error(1) << xyz_error(2) << std::endl;
+			//std::cout << "xyz_dot_error = " << xyz_dot_error(0) << xyz_dot_error(1) << xyz_dot_error(2) << std::endl;
+			//std::cout << "attitude_error = " << attitude_error(0) << attitude_error(1) << attitude_error(2) << std::endl;
+			//std::cout << "attitude_dot_error = " << attitude_dot_error(0) << attitude_dot_error(1) << attitude_dot_error(2) << std::endl;
 		}
 		else if(PLATFORM==SLUNGLOAD)
 		{

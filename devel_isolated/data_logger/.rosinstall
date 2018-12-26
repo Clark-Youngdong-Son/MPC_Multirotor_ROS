@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/data_logger/setup.sh

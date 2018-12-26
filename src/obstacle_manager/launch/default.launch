@@ -1,0 +1,6 @@
+<?xml version='1.0' ?>
+<launch>
+	<rosparam file="$(find obstacle_manager)/src/parameters.yaml" command="load"/>
+
+	<node name="obstacle_manager" pkg="obstacle_manager" type="obstacle_manager" output="screen"/>
+</launch>

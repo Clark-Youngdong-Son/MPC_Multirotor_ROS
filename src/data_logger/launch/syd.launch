@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+	<arg name="ns" default="logger" />
+	<arg name="file_directory" default="$(find data_logger)/logs" />
+	<arg name="file_name" default="att_sp" />
+	
+	<arg name="vicon_pose" default="vicon/pose" />
+	<arg name="local_pose" default="mavros/local_position/pose" />
+	<arg name="vicon_twist" default="vicon/velocity" />
+	<arg name="local_twist" default="mavros/local_position/velocity" />
+	<arg name="imu_raw" default="mavros/imu/data_raw" />
+	<arg name="imu" default="mavros/imu/data" />
+	<arg name="lidar" default="mavros/distance_sensor/lidarlite" />
+	<arg name="gps_mavros_fix" default="mavros/global_position/raw/fix" />
+	<arg name="gps_mavros_fix_vel" default="mavros/global_position/raw/vel" />
+	<arg name="att_sp" default="mavros/setpoint_raw/attitude" />	
+
+	<node pkg="data_logger" type="data_logger" name="$(arg ns)" 
+		output="screen" clear_params="true">
+		
+		<param name="file_directory" type="string" value="$(arg file_directory)" />
+		<param name="file_name" type="string" value="$(arg file_name)" />
+		
+		<param name="vicon_pose" type="string" value="$(arg vicon_pose)" />
+		<param name="local_pose" type="string" value="$(arg local_pose)" />
+		<param name="vicon_twist" type="string" value="$(arg vicon_twist)" />
+		<param name="local_twist" type="string" value="$(arg local_twist)" />
+		<param name="imu_raw" type="string" value="$(arg imu_raw)" />
+		<param name="imu" type="string" value="$(arg imu)" />
+		<param name="lidar" type="string" value="$(arg lidar)" />
+		<param name="gps_mavros_fix" type="string" value="$(arg gps_mavros_fix)" />
+		<param name="gps_mavros_fix_vel" type="string" value="$(arg gps_mavros_fix_vel)" />
+		<param name="att_sp" type="string" value="$(arg att_sp)" />
+	</node>
+
+</launch>

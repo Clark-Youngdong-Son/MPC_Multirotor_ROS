@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/mpc_icra
+
+Name: mpc_icra
+Description: Description of mpc_icra
+Version: 0.0.0
+Cflags: -I/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/mpc_icra/include -I/usr/include/eigen3
+Libs: -L/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/mpc_icra/lib 
+Requires: message_runtime

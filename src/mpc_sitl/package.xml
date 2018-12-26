@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package>
+  <name>mpc_sitl</name>
+  <version>0.0.0</version>
+  <description>mpc_sitl package</description>
+
+  <maintainer email="youngdong@todo.todo">youngdong</maintainer>
+
+
+  <license>TODO</license>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>mavros_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>cmake_modules</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>mavros_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <buildtool_depend>catkin</buildtool_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>

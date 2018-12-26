@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/load_cell/setup.sh

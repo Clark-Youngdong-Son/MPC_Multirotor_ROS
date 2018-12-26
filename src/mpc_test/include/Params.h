@@ -40,20 +40,20 @@
 #define DELTA 0.0001
 
 //Nominal Input
-#define USE_PID_CONTROLLER false
+#define USE_PID_CONTROLLER true
 
-#define P_xy 0.5
-#define P_z 60.0
+#define P_xy 1.0
+#define P_z 120.0
 #define P_rp 8.8
-#define P_y 0.6
+#define P_y 1.0
 
 //#define I_xy 0.0
 //#define I_z 0.0
 //#define I_rp 0.0
 //#define I_y 0.0
 
-#define D_xy 0.5
-#define D_z 40.0
+#define D_xy 1.0
+#define D_z 100.0
 #define D_rp 1.5
 #define D_y 0.2
 

@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/data_logger
+
+Name: data_logger
+Description: Description of data_logger
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/data_logger/lib 
+Requires: message_runtime

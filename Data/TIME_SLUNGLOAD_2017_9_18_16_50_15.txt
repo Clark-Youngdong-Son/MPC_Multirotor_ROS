@@ -1,0 +1,9 @@
+time_derivative : 0.143167
+time_backward : 2.15491
+time_cost : 0.447124
+time_etc : 0.0952322
+f_derivative : 5.04031
+f_backward : 75.8656
+f_cost : 15.7414
+f_etc : 3.35273
+avg_compute : 0.00459343

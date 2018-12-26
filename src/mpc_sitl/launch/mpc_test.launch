@@ -1,0 +1,13 @@
+<launch>
+        <node pkg="keyboard" type="keyboard" name="keyboard" output="screen">
+        </node>
+        <node pkg="mpc_test" type="mpc_test" name="mpc_test" output="screen">
+        </node>
+</launch>
+
+                                                                                                  
+                                                                                                  
+                                                                                                  
+                                                                                                  
+                                                                                                  
+                      

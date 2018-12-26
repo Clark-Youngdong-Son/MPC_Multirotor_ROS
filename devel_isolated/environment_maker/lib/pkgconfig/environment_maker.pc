@@ -1,0 +1,8 @@
+prefix=/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/environment_maker
+
+Name: environment_maker
+Description: Description of environment_maker
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/youngdong/ROS/MPC_Multirotor_ROS/devel_isolated/environment_maker/lib 
+Requires: 
